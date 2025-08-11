@@ -18,36 +18,52 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Install system dependencies
+    - name: Install basic dependencies
       run: |
-        choco install ffmpeg -y
+        python -m pip install --upgrade pip setuptools wheel
     
-    - name: Install Python dependencies
+    - name: Install core dependencies first
       run: |
-        python -m pip install --upgrade pip
-        pip install soundcard==0.4.2
-        pip install openai-whisper==20231117
         pip install numpy==1.24.3
         pip install psutil==5.9.0
-        pip install pyinstaller==5.10.1
-        pip install torch==2.0.1
-        pip install torchaudio==2.0.2
     
-    - name: Verify installation
+    - name: Install audio dependencies
+      run: |
+        pip install soundcard==0.4.2
+    
+    - name: Install torch (CPU only for smaller size)
+      run: |
+        pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cpu
+    
+    - name: Install whisper
+      run: |
+        pip install openai-whisper==20231117
+    
+    - name: Install PyInstaller
+      run: |
+        pip install pyinstaller==5.10.1
+    
+    - name: Verify critical imports
       run: |
         python -c "import soundcard; print('soundcard OK')"
-        python -c "import whisper; print('whisper OK')"
         python -c "import psutil; print('psutil OK')"
         python -c "import torch; print('torch OK')"
+        python -c "import whisper; print('whisper OK')"
     
-    - name: Build executable with PyInstaller
+    - name: Build executable with custom spec
       run: |
-        pyinstaller --onefile --console --name="TeamsTranscriptBot" transcript_bot.py
+        echo "Building with custom spec file to handle recursion..."
+        pyinstaller transcript_bot.spec
     
-    - name: Verify executable
+    - name: Verify executable was created
       run: |
-        dir dist
-        echo "Executable created successfully"
+        if (Test-Path "dist/TeamsTranscriptBot.exe") {
+            echo "Executable created successfully"
+            Get-ChildItem dist -Name
+        } else {
+            echo "ERROR: Executable not found"
+            exit 1
+        }
     
     - name: Upload executable as artifact
       uses: actions/upload-artifact@v4
@@ -75,15 +91,14 @@ jobs:
           
           ## Como usar:
           1. Descarga TeamsTranscriptBot.exe
-          2. Ejecuta el archivo
-          3. Presiona ENTER cuando quieras parar
+          2. Ejecuta el archivo (puede pedir permisos de administrador)
+          3. Presiona ENTER cuando quieras parar la grabacion
           
           ## Requisitos:
           - Windows 10/11
           - Microfono y altavoces funcionando
-          - Permisos de administrador (recomendado)
           
-          Tamaño: ~300-400MB (incluye modelo Whisper)
+          Tamaño: ~200-300MB (version optimizada)
         files: |
           dist/TeamsTranscriptBot.exe
         draft: false
