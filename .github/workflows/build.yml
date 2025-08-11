@@ -1,0 +1,101 @@
+name: Build Teams Transcript Bot
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Permite ejecutar manualmente
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install system dependencies
+      run: |
+        # Instalar dependencias del sistema para audio
+        choco install ffmpeg -y
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install soundcard==0.4.2
+        pip install openai-whisper==20231117
+        pip install numpy==1.24.3
+        pip install psutil==5.9.0
+        pip install pyinstaller==5.10.1
+        pip install torch==2.0.1
+        pip install torchaudio==2.0.2
+    
+    - name: Verify installation
+      run: |
+        python -c "import soundcard; print('✅ soundcard OK')"
+        python -c "import whisper; print('✅ whisper OK')"
+        python -c "import psutil; print('✅ psutil OK')"
+        python -c "import torch; print('✅ torch OK')"
+    
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --onefile --console --name="TeamsTranscriptBot" --icon=NONE transcript_bot.py
+    
+    - name: Verify executable
+      run: |
+        dir dist
+        echo "Executable created successfully"
+    
+    - name: Upload executable as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: TeamsTranscriptBot-Windows-exe
+        path: dist/TeamsTranscriptBot.exe
+        retention-days: 30
+    
+    - name: Create release (if on main branch)
+      if: github.ref == 'refs/heads/main'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Teams Transcript Bot v${{ github.run_number }}
+        body: |
+          🤖 Teams Audio Transcription Bot
+          
+          ## Características:
+          - 🎤 Captura audio del sistema en tiempo real
+          - 🔤 Transcripción automática con Whisper
+          - 📝 Guarda transcripciones en JSON y TXT
+          - 🎯 Detecta automáticamente Microsoft Teams
+          
+          ## Cómo usar:
+          1. Descarga `TeamsTranscriptBot.exe`
+          2. Ejecuta el archivo
+          3. Presiona ENTER cuando quieras parar
+          
+          ## Requisitos:
+          - Windows 10/11
+          - Micrófono y altavoces funcionando
+          - Permisos de administrador (recomendado)
+          
+          Tamaño: ~300-400MB (incluye modelo Whisper)
+        draft: false
+        prerelease: false
+    
+    - name: Upload release executable
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/TeamsTranscriptBot.exe
+        asset_name: TeamsTranscriptBot.exe
+        asset_content_type: application/octet-stream
