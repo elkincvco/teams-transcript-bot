@@ -1,13 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Aumentar límite de recursión para evitar RecursionError
+# SOLUCION PARA RecursionError
 import sys
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
-
-# Datos adicionales necesarios para Whisper
-whisper_data = [
-    ('whisper/assets/*', 'whisper/assets'),
-]
 
 # Hidden imports necesarios
 hidden_imports = [
@@ -30,13 +25,12 @@ a = Analysis(
     ['transcript_bot.py'],
     pathex=[],
     binaries=[],
-    datas=whisper_data,
+    datas=[],  # VACIO - Sin archivos adicionales para evitar errores
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # Excluir módulos innecesarios para reducir tamaño
         'matplotlib',
         'scipy',
         'IPython',
@@ -44,16 +38,15 @@ a = Analysis(
         'notebook',
         'tkinter.test',
         'test',
-        'unittest'
+        'unittest',
+        'cv2',
+        'PIL'
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
     noarchive=False,
 )
-
-# Filtrar binarios problemáticos
-a.binaries = [x for x in a.binaries if not x[0].startswith('torch')]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
