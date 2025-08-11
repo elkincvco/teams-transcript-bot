@@ -3,7 +3,7 @@ name: Build Teams Transcript Bot
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -20,7 +20,6 @@ jobs:
     
     - name: Install system dependencies
       run: |
-        # Instalar dependencias del sistema para audio
         choco install ffmpeg -y
     
     - name: Install Python dependencies
@@ -36,14 +35,14 @@ jobs:
     
     - name: Verify installation
       run: |
-        python -c "import soundcard; print('✅ soundcard OK')"
-        python -c "import whisper; print('✅ whisper OK')"
-        python -c "import psutil; print('✅ psutil OK')"
-        python -c "import torch; print('✅ torch OK')"
+        python -c "import soundcard; print('soundcard OK')"
+        python -c "import whisper; print('whisper OK')"
+        python -c "import psutil; print('psutil OK')"
+        python -c "import torch; print('torch OK')"
     
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller --onefile --console --name="TeamsTranscriptBot" --icon=NONE transcript_bot.py
+        pyinstaller --onefile --console --name="TeamsTranscriptBot" transcript_bot.py
     
     - name: Verify executable
       run: |
@@ -57,9 +56,8 @@ jobs:
         path: dist/TeamsTranscriptBot.exe
         retention-days: 30
     
-    - name: Create release (if on main branch)
+    - name: Create release
       if: github.ref == 'refs/heads/main'
-      id: create_release
       uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,22 +65,22 @@ jobs:
         tag_name: v${{ github.run_number }}
         name: Teams Transcript Bot v${{ github.run_number }}
         body: |
-          🤖 Teams Audio Transcription Bot
+          Teams Audio Transcription Bot
           
-          ## Características:
-          - 🎤 Captura audio del sistema en tiempo real
-          - 🔤 Transcripción automática con Whisper
-          - 📝 Guarda transcripciones en JSON y TXT
-          - 🎯 Detecta automáticamente Microsoft Teams
+          ## Caracteristicas:
+          - Captura audio del sistema en tiempo real
+          - Transcripcion automatica con Whisper
+          - Guarda transcripciones en JSON y TXT
+          - Detecta automaticamente Microsoft Teams
           
-          ## Cómo usar:
-          1. Descarga `TeamsTranscriptBot.exe`
+          ## Como usar:
+          1. Descarga TeamsTranscriptBot.exe
           2. Ejecuta el archivo
           3. Presiona ENTER cuando quieras parar
           
           ## Requisitos:
           - Windows 10/11
-          - Micrófono y altavoces funcionando
+          - Microfono y altavoces funcionando
           - Permisos de administrador (recomendado)
           
           Tamaño: ~300-400MB (incluye modelo Whisper)
