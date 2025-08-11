@@ -18,12 +18,9 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Install basic dependencies
+    - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-    
-    - name: Install dependencies step by step
-      run: |
+        python -m pip install --upgrade pip
         pip install numpy==1.24.3
         pip install psutil==5.9.0
         pip install soundcard==0.4.2
@@ -31,28 +28,37 @@ jobs:
         pip install openai-whisper==20231117
         pip install pyinstaller==5.10.1
     
-    - name: Verify imports work
+    - name: Verify our spec file content
       run: |
-        python -c "import soundcard; print('soundcard OK')"
-        python -c "import psutil; print('psutil OK')"
-        python -c "import torch; print('torch OK')"
-        python -c "import whisper; print('whisper OK')"
+        echo "=== Content of our transcript_bot.spec ==="
+        Get-Content transcript_bot.spec
+        echo "=== Checking for whisper references ==="
+        if (Select-String -Pattern "whisper.*assets" -Path "transcript_bot.spec") {
+            echo "ERROR: Found whisper assets reference in spec file!"
+            exit 1
+        } else {
+            echo "OK: No whisper assets references found"
+        }
     
-    - name: Build executable using spec file
+    - name: Clean and build
       run: |
-        echo "Building with spec file to avoid RecursionError..."
+        echo "Removing any existing build files..."
+        Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "TeamsTranscriptBot.spec" -Force -ErrorAction SilentlyContinue
+        
+        echo "Building with our clean spec file..."
         pyinstaller transcript_bot.spec
     
-    - name: Verify executable was created
+    - name: Verify executable
       run: |
         if (Test-Path "dist/TeamsTranscriptBot.exe") {
             echo "SUCCESS: Executable created"
-            Get-ChildItem dist -Name
             $size = (Get-Item "dist/TeamsTranscriptBot.exe").Length
             echo "Size: $([math]::Round($size/1MB, 2)) MB"
         } else {
-            echo "ERROR: Executable not found in dist folder"
-            Get-ChildItem . -Recurse -Name "*.exe"
+            echo "ERROR: Executable not found"
+            Get-ChildItem dist -ErrorAction SilentlyContinue
             exit 1
         }
     
@@ -61,4 +67,3 @@ jobs:
       with:
         name: TeamsTranscriptBot-Windows
         path: dist/TeamsTranscriptBot.exe
-        retention-days: 30
