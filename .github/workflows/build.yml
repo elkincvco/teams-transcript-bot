@@ -22,84 +22,43 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
     
-    - name: Install core dependencies first
+    - name: Install dependencies step by step
       run: |
         pip install numpy==1.24.3
         pip install psutil==5.9.0
-    
-    - name: Install audio dependencies
-      run: |
         pip install soundcard==0.4.2
-    
-    - name: Install torch (CPU only for smaller size)
-      run: |
         pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cpu
-    
-    - name: Install whisper
-      run: |
         pip install openai-whisper==20231117
-    
-    - name: Install PyInstaller
-      run: |
         pip install pyinstaller==5.10.1
     
-    - name: Verify critical imports
+    - name: Verify imports work
       run: |
         python -c "import soundcard; print('soundcard OK')"
         python -c "import psutil; print('psutil OK')"
         python -c "import torch; print('torch OK')"
         python -c "import whisper; print('whisper OK')"
     
-    - name: Build executable with custom spec
+    - name: Build executable using spec file
       run: |
-        echo "Building with custom spec file to handle recursion..."
+        echo "Building with spec file to avoid RecursionError..."
         pyinstaller transcript_bot.spec
     
     - name: Verify executable was created
       run: |
         if (Test-Path "dist/TeamsTranscriptBot.exe") {
-            echo "Executable created successfully"
+            echo "SUCCESS: Executable created"
             Get-ChildItem dist -Name
+            $size = (Get-Item "dist/TeamsTranscriptBot.exe").Length
+            echo "Size: $([math]::Round($size/1MB, 2)) MB"
         } else {
-            echo "ERROR: Executable not found"
+            echo "ERROR: Executable not found in dist folder"
+            Get-ChildItem . -Recurse -Name "*.exe"
             exit 1
         }
     
-    - name: Upload executable as artifact
+    - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
-        name: TeamsTranscriptBot-Windows-exe
+        name: TeamsTranscriptBot-Windows
         path: dist/TeamsTranscriptBot.exe
         retention-days: 30
-    
-    - name: Create release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ github.run_number }}
-        name: Teams Transcript Bot v${{ github.run_number }}
-        body: |
-          Teams Audio Transcription Bot
-          
-          ## Caracteristicas:
-          - Captura audio del sistema en tiempo real
-          - Transcripcion automatica con Whisper
-          - Guarda transcripciones en JSON y TXT
-          - Detecta automaticamente Microsoft Teams
-          
-          ## Como usar:
-          1. Descarga TeamsTranscriptBot.exe
-          2. Ejecuta el archivo (puede pedir permisos de administrador)
-          3. Presiona ENTER cuando quieras parar la grabacion
-          
-          ## Requisitos:
-          - Windows 10/11
-          - Microfono y altavoces funcionando
-          
-          Tamaño: ~200-300MB (version optimizada)
-        files: |
-          dist/TeamsTranscriptBot.exe
-        draft: false
-        prerelease: false
