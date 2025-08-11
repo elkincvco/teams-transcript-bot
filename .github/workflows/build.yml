@@ -51,7 +51,7 @@ jobs:
         echo "Executable created successfully"
     
     - name: Upload executable as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: TeamsTranscriptBot-Windows-exe
         path: dist/TeamsTranscriptBot.exe
@@ -60,12 +60,12 @@ jobs:
     - name: Create release (if on main branch)
       if: github.ref == 'refs/heads/main'
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v${{ github.run_number }}
-        release_name: Teams Transcript Bot v${{ github.run_number }}
+        name: Teams Transcript Bot v${{ github.run_number }}
         body: |
           🤖 Teams Audio Transcription Bot
           
@@ -86,16 +86,7 @@ jobs:
           - Permisos de administrador (recomendado)
           
           Tamaño: ~300-400MB (incluye modelo Whisper)
+        files: |
+          dist/TeamsTranscriptBot.exe
         draft: false
         prerelease: false
-    
-    - name: Upload release executable
-      if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/TeamsTranscriptBot.exe
-        asset_name: TeamsTranscriptBot.exe
-        asset_content_type: application/octet-stream
